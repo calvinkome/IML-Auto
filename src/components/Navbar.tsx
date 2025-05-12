@@ -1,0 +1,284 @@
+import React, { useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Car, ChevronDown, ShoppingCart, LogIn, Menu, X } from 'lucide-react';
+import Button from './Button';
+import { useAuth } from '../contexts/AuthContext';
+
+const mainMenuItems = [
+  {
+    title: 'Notre Flotte',
+    path: '/fleet',
+    submenu: [
+      { name: 'Économique', path: '/fleet?category=economic' },
+      { name: 'Luxe', path: '/fleet?category=luxury' },
+      { name: 'SUV', path: '/fleet?category=suv' },
+      { name: 'Utilitaire', path: '/fleet?category=utility' }
+    ]
+  },
+  {
+    title: 'Services',
+    path: '/services',
+    submenu: [
+      { name: 'Location Standard', path: '/car-rental' },
+      { name: 'Service Premium', path: '/premium-service' },
+      { name: 'Diagnostics', path: '/diagnostics' },
+      { name: 'Service Aéroportuaire', path: '/airport-service' },
+      { name: 'Assistance 24/7', path: '/support' }
+    ]
+  },
+  {
+    title: 'Réservation',
+    path: '/booking',
+    submenu: [
+      { name: 'Réserver un véhicule', path: '/car-rental' },
+      { name: 'Service aéroportuaire', path: '/airport-service' },
+      { name: 'Service premium', path: '/premium-service' }
+    ]
+  }
+];
+
+export default function Navbar() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const toggleSubmenu = useCallback((title: string) => {
+    setActiveSubmenu(activeSubmenu === title ? null : title);
+  }, [activeSubmenu]);
+
+  const handleNavigation = useCallback((path: string) => {
+    try {
+      navigate(path);
+      setMobileMenuOpen(false);
+      setActiveSubmenu(null);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+      toast.textContent = 'Une erreur est survenue lors de la redirection';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  }, [navigate]);
+
+  // Fermer le menu mobile lors du changement de route
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+    setActiveSubmenu(null);
+  }, [window.location.pathname]);
+
+  return (
+    <nav className="bg-black text-white py-4 px-6 fixed w-full z-50 shadow-lg">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <Link to="/" className="flex items-center space-x-2">
+          <Car className="h-8 w-8 text-yellow-400" />
+          <span className="text-xl font-bold">IML Auto</span>
+        </Link>
+        
+        {/* Desktop Menu */}
+        <div className="hidden lg:flex items-center space-x-8">
+          <Link to="/" className="hover:text-yellow-400 font-medium">
+            Accueil
+          </Link>
+          
+          {mainMenuItems.map((item) => (
+            <div key={item.title} className="relative group">
+              <button
+                className="flex items-center space-x-1 hover:text-yellow-400 font-medium"
+                onClick={() => toggleSubmenu(item.title)}
+              >
+                <span>{item.title}</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              
+              <div className="absolute left-0 mt-2 w-64 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                <div className="py-2">
+                  {item.submenu.map((subItem) => (
+                    <Link
+                      key={subItem.name}
+                      to={subItem.path}
+                      onClick={() => handleNavigation(subItem.path)}
+                      className="block px-4 py-2 text-gray-800 hover:bg-yellow-50 hover:text-yellow-600"
+                    >
+                      {subItem.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          <Link to="/blog" className="hover:text-yellow-400 font-medium">
+            Blog
+          </Link>
+          <Link to="/about" className="hover:text-yellow-400 font-medium">
+            À Propos
+          </Link>
+          <Link to="/contact" className="hover:text-yellow-400 font-medium">
+            Contact
+          </Link>
+        </div>
+        
+        {/* User Actions */}
+        <div className="hidden lg:flex items-center space-x-6">
+          {user ? (
+            <>
+              <button 
+                className="text-white hover:text-yellow-400 transition-colors"
+                aria-label="Panier"
+              >
+                <ShoppingCart className="h-6 w-6" />
+              </button>
+              <Link 
+                to="/profile"
+                className="text-white hover:text-yellow-400 transition-colors"
+                aria-label="Profil"
+              >
+                <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-black font-semibold">
+                  {user.username[0].toUpperCase()}
+                </div>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="inline-flex items-center text-white hover:text-yellow-400 font-medium transition-colors"
+              >
+                <LogIn className="h-5 w-5 mr-2" />
+                <span>Connexion</span>
+              </Link>
+              <Link
+                to="/register"
+                className="bg-yellow-400 text-black px-4 py-2 rounded-md font-semibold hover:bg-yellow-500 transition-colors"
+              >
+                S'inscrire
+              </Link>
+            </>
+          )}
+          <Link to="/car-rental" className="inline-block">
+            <Button variant="primary" size="md">Réserver</Button>
+          </Link>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          className="lg:hidden text-white"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-black border-t border-gray-800">
+          <div className="px-4 py-2">
+            <Link
+              to="/"
+              className="block py-2 text-white hover:text-yellow-400"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Accueil
+            </Link>
+            
+            {mainMenuItems.map((item) => (
+              <div key={item.title}>
+                <button
+                  className="flex items-center justify-between w-full py-2 text-white hover:text-yellow-400"
+                  onClick={() => toggleSubmenu(item.title)}
+                >
+                  <span>{item.title}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transform transition-transform ${
+                      activeSubmenu === item.title ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                
+                {activeSubmenu === item.title && (
+                  <div className="pl-4 pb-2">
+                    {item.submenu.map((subItem) => (
+                      <Link
+                        key={subItem.name}
+                        to={subItem.path}
+                        onClick={() => handleNavigation(subItem.path)}
+                        className="block py-2 text-gray-300 hover:text-yellow-400"
+                      >
+                        {subItem.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            <Link
+              to="/blog"
+              className="block py-2 text-white hover:text-yellow-400"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Blog
+            </Link>
+            <Link
+              to="/about"
+              className="block py-2 text-white hover:text-yellow-400"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              À Propos
+            </Link>
+            <Link
+              to="/contact"
+              className="block py-2 text-white hover:text-yellow-400"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            <Link
+              to="/login"
+              className="block py-2 text-white hover:text-yellow-400"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Connexion
+            </Link>
+            <Link
+              to="/register"
+              className="block py-2 text-white hover:text-yellow-400"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              S'inscrire
+            </Link>
+            
+            <div className="pt-4 border-t border-gray-800 mt-4">
+              <Link
+                to="/booking"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full"
+              >
+                <Button variant="primary" fullWidth>Réserver</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Bar */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gray-900 py-1 px-6 text-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-gray-400">
+          <div className="flex items-center space-x-4">
+            <span>Support 24/7: +243 819 623 320</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span>Connecté en tant que visiteur</span>
+            <span>Panier: 0 réservation</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
