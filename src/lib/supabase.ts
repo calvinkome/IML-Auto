@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types/database.types';
+import type { Database } from './database.types';
 
 // Validate environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -36,17 +36,19 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         if (typeof window !== 'undefined') {
           localStorage.removeItem(key);
         }
-      }
-    }
+      },
+    },
   },
   db: {
-    schema: 'public'
+    schema: 'public',
   },
 });
 
-// Type exports
+// Type exports - Fixed to match your actual tables
 export type { Database };
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Vehicle = Database['public']['Tables']['vehicles']['Row'];
+export type Booking = Database['public']['Tables']['bookings']['Row'];
 export type Session = Database['public']['Tables']['sessions']['Row'];
 export type AuditLog = Database['public']['Tables']['audit_logs']['Row'];
 
@@ -55,22 +57,18 @@ export type AuditLog = Database['public']['Tables']['audit_logs']['Row'];
  */
 export const supabaseService = {
   /**
-   * Get user profile
+   * Get user profile by user_id (links to auth.users)
    */
   async getProfile(userId: string): Promise<Profile | null> {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId) // Fixed: use user_id instead of id
         .maybeSingle();
 
       if (error) {
-        console.error('[Supabase] Profile fetch error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details
-        });
+        console.error('[Supabase] Profile fetch error:', error);
         return null;
       }
       return data;
@@ -81,23 +79,57 @@ export const supabaseService = {
   },
 
   /**
-   * Update user profile
+   * Create profile after user signup
    */
-  async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile> {
+  async createProfile(
+    userId: string,
+    profileData: {
+      full_name?: string;
+      role?: 'user' | 'admin';
+    }
+  ): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('id', userId)
+        .insert({
+          user_id: userId,
+          full_name: profileData.full_name || '',
+          role: profileData.role || 'user',
+        })
         .select()
         .single();
 
       if (error) {
-        console.error('[Supabase] Profile update error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details
-        });
+        console.error('[Supabase] Profile creation error:', error);
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.error('[Supabase] Failed to create profile:', error);
+      throw new Error('Failed to create user profile');
+    }
+  },
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(
+    userId: string,
+    updates: Partial<Profile>
+  ): Promise<Profile> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId) // Fixed: use user_id
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Supabase] Profile update error:', error);
         throw error;
       }
       return data;
@@ -108,112 +140,87 @@ export const supabaseService = {
   },
 
   /**
-   * Update username with validation
+   * Enhanced login with proper error handling
    */
-  async updateUsername(userId: string, newUsername: string): Promise<Profile> {
-    // Validate username format
-    if (!/^[a-z0-9_]{3,20}$/.test(newUsername)) {
-      throw new Error('Username must be 3-20 lowercase letters, numbers, or underscores');
-    }
-
-    // Check if username exists
-    const { count } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('username', newUsername)
-      .neq('id', userId);
-
-    if (count && count > 0) {
-      throw new Error('Username already taken');
-    }
-
-    return this.updateProfile(userId, { username: newUsername });
-  },
-
-  /**
-   * Enhanced login with timeout handling
-   */
-  async signIn(email: string, password: string): Promise<{ user: any, session: any }> {
+  async signIn(email: string, password: string) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
-        password
+        password,
       });
 
       if (error) {
-        console.error('[Supabase] Login error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details
-        });
-        throw error;
+        console.error('[Supabase] Login error:', error);
+
+        // Handle specific error types
+        if (error.message === 'Invalid login credentials') {
+          throw new Error('Email or password is incorrect');
+        } else if (error.message === 'Email not confirmed') {
+          throw new Error('Please verify your email before logging in');
+        } else {
+          throw error;
+        }
       }
 
-      if (!data.session) {
-        throw new Error('No session returned');
+      if (!data.session || !data.user) {
+        throw new Error('No session returned from login');
       }
 
       return data;
     } catch (error) {
       console.error('[Supabase] Login failed:', error);
-      throw new Error('Login timeout. Please check your connection and try again.');
+      throw error;
     }
   },
 
   /**
-   * Create a new session
+   * Enhanced signup with profile creation
    */
-  async createSession(userId: string): Promise<Session> {
+  async signUp(
+    email: string,
+    password: string,
+    userData: {
+      full_name?: string;
+      role?: 'user' | 'admin';
+    }
+  ) {
     try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .insert({
-          user_id: userId,
-          expires_at: new Date(Date.now() + 86400000).toISOString() // 24 hours
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: {
+            full_name: userData.full_name || '',
+            role: userData.role || 'user',
+          },
+          emailRedirectTo: `${window.location.origin}/verify-email`,
+        },
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Supabase] Signup error:', error);
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error('Failed to create user account');
+      }
+
       return data;
     } catch (error) {
-      console.error('[Supabase] Session creation error:', error);
-      throw new Error('Failed to create session');
+      console.error('[Supabase] Signup failed:', error);
+      throw error;
     }
   },
 
   /**
-   * Get audit logs with pagination
-   */
-  async getAuditLogs(userId: string, limit = 50, page = 1): Promise<AuditLog[]> {
-    try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('[Supabase] Audit logs fetch error:', error);
-      throw new Error('Failed to fetch audit logs');
-    }
-  },
-
-  /**
-   * Test Supabase connection
+   * Test database connection
    */
   async testConnection(): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .select('*')
-        .limit(1);
+      const { error } = await supabase.from('profiles').select('id').limit(1);
 
-      if (error) throw error;
-      return true;
+      return !error;
     } catch (error) {
       console.error('[Supabase] Connection test failed:', error);
       return false;
@@ -221,27 +228,31 @@ export const supabaseService = {
   },
 
   /**
-   * Retry wrapper for operations
+   * Get current session
    */
-  async withRetry<T>(operation: () => Promise<T>, retries = 3): Promise<T> {
+  async getCurrentSession() {
     try {
-      return await operation();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('[Supabase] Session error:', error);
+        return null;
+      }
+
+      return session;
     } catch (error) {
-      if (retries <= 0) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return this.withRetry(operation, retries - 1);
+      console.error('[Supabase] Failed to get session:', error);
+      return null;
     }
-  }
+  },
 };
 
-// Subscribe to realtime updates (optional)
-export function subscribeToProfileUpdates(userId: string, callback: (payload: any) => void) {
-  return supabase.channel('profile_updates')
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'profiles',
-      filter: `id=eq.${userId}`
-    }, callback)
-    .subscribe();
+// Auth state change listener
+export function onAuthStateChange(
+  callback: (event: string, session: any) => void
+) {
+  return supabase.auth.onAuthStateChange(callback);
 }
