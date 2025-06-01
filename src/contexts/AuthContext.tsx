@@ -185,27 +185,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         setLoading(true);
-        const isAuthenticated = await verifySession();
 
-        if (isAuthenticated) {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session?.user && mounted) {
-            try {
-              const profile = await fetchUserProfile(
-                session.user.id,
-                session.user
-              );
-              setUser(profile);
-            } catch (profileError) {
-              console.error(
-                'Profile fetch failed during initialization:',
-                profileError
-              );
-              // If profile doesn't exist, clear the session
-              await supabase.auth.signOut();
-            }
+        // Get the current session
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Session error:', error);
+          return;
+        }
+
+        if (session?.user && mounted) {
+          try {
+            const profile = await fetchUserProfile(
+              session.user.id,
+              session.user
+            );
+            setUser(profile);
+          } catch (profileError) {
+            console.error(
+              'Profile fetch failed during initialization:',
+              profileError
+            );
+            await supabase.auth.signOut();
           }
         }
       } catch (err) {
@@ -215,19 +219,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Initialize auth state
     initializeAuth();
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
 
+      if (!mounted) return;
+
       if (session?.user) {
         try {
           const profile = await fetchUserProfile(session.user.id, session.user);
           setUser(profile);
+
+          // Only redirect on SIGNED_IN event, not on TOKEN_REFRESHED
           if (event === 'SIGNED_IN') {
-            // Check user role and redirect appropriately
             if (profile.role === 'admin') {
               navigate('/admin/dashboard', { replace: true });
             } else {
@@ -236,21 +245,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (err) {
           console.error('Profile fetch failed after auth change:', err);
-          handleError(err);
+          await supabase.auth.signOut();
         }
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        if (event === 'SIGNED_OUT') {
-          navigate('/login', { replace: true });
-        }
+        navigate('/login', { replace: true });
       }
+
+      if (mounted) setLoading(false);
     });
 
     return () => {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, [navigate, fetchUserProfile, handleError, verifySession]);
+  }, [navigate, fetchUserProfile]);
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<UserProfile> => {

@@ -1,42 +1,48 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Footer from './components/Footer';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import Blog from './pages/blog/Blog';
+import Navbar from './components/Navbar';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ReservationProvider } from './contexts/ReservationContext';
+import { ToastProvider } from './contexts/ToastContext';
 import About from './pages/About';
+import AirportService from './pages/AirportService';
+import CarRental from './pages/CarRental';
+import Contact from './pages/Contact';
+import Diagnostics from './pages/Diagnostics';
+import Fleet from './pages/Fleet';
+import ForgotPassword from './pages/ForgotPassword';
+import Home from './pages/Home';
 import Locations from './pages/Locations';
-import AdminLogin from './pages/admin/AdminLogin';
+import Login from './pages/Login';
+import PremiumService from './pages/PremiumService';
 import Profile from './pages/Profile';
+import Register from './pages/Register';
+import Support from './pages/Support';
+import VerifyEmailPage from './pages/VerifyEmailPage'; // Import VerifyEmailPage
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminSettings from './pages/admin/AdminSettings';
+import BookingManagement from './pages/admin/BookingManagement';
 import AdminDashboard from './pages/admin/Dashboard';
+import ReportsAnalytics from './pages/admin/ReportsAnalytics';
 import UserManagement from './pages/admin/UserManagement';
 import VehicleManagement from './pages/admin/VehicleManagement';
-import CarRental from './pages/CarRental';
-import Fleet from './pages/Fleet';
-import Diagnostics from './pages/Diagnostics';
-import AirportService from './pages/AirportService';
-import PremiumService from './pages/PremiumService';
-import Support from './pages/Support';
-import Contact from './pages/Contact';
-import VerifyEmailPage from './pages/VerifyEmailPage'; // Import VerifyEmailPage
-import { AuthProvider } from './contexts/AuthContext';
-import { ToastProvider } from './contexts/ToastContext';
-import { ReservationProvider } from './contexts/ReservationContext';
-import { useAuth } from './contexts/AuthContext';
+import Blog from './pages/blog/Blog';
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className='flex items-center justify-center min-h-screen'>
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to='/login' replace />;
   }
 
   return children;
@@ -49,8 +55,12 @@ const AdminLayout = () => {
       {/* Add a common admin layout (e.g., sidebar or header) here */}
       <Routes>
         <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<UserManagement />} />
-        <Route path="vehicles" element={<VehicleManagement />} />
+        <Route path='dashboard' element={<AdminDashboard />} />
+        <Route path='users' element={<UserManagement />} />
+        <Route path='vehicles' element={<VehicleManagement />} />
+        <Route path='bookings' element={<BookingManagement />} />
+        <Route path='reports' element={<ReportsAnalytics />} />
+        <Route path='settings' element={<AdminSettings />} />
       </Routes>
     </div>
   );
@@ -61,30 +71,30 @@ function App() {
     <AuthProvider>
       <ToastProvider>
         <ReservationProvider>
-          <div className="min-h-screen bg-white flex flex-col">
+          <div className='min-h-screen bg-white flex flex-col'>
             <Navbar />
-            <main className="flex-grow">
+            <main className='flex-grow'>
               <Routes>
                 {/* Public Routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route path="/blog/*" element={<Blog />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/locations" element={<Locations />} />
-                <Route path="/car-rental" element={<CarRental />} />
-                <Route path="/fleet" element={<Fleet />} />
-                <Route path="/diagnostics" element={<Diagnostics />} />
-                <Route path="/airport-service" element={<AirportService />} />
-                <Route path="/premium-service" element={<PremiumService />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="/contact" element={<Contact />} />
+                <Route path='/' element={<Home />} />
+                <Route path='/login' element={<Login />} />
+                <Route path='/register' element={<Register />} />
+                <Route path='/forgot-password' element={<ForgotPassword />} />
+                <Route path='/verify-email' element={<VerifyEmailPage />} />
+                <Route path='/blog/*' element={<Blog />} />
+                <Route path='/about' element={<About />} />
+                <Route path='/locations' element={<Locations />} />
+                <Route path='/car-rental' element={<CarRental />} />
+                <Route path='/fleet' element={<Fleet />} />
+                <Route path='/diagnostics' element={<Diagnostics />} />
+                <Route path='/airport-service' element={<AirportService />} />
+                <Route path='/premium-service' element={<PremiumService />} />
+                <Route path='/support' element={<Support />} />
+                <Route path='/contact' element={<Contact />} />
 
                 {/* Protected Routes */}
                 <Route
-                  path="/profile"
+                  path='/profile'
                   element={
                     <ProtectedRoute>
                       <Profile />
@@ -93,9 +103,9 @@ function App() {
                 />
 
                 {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path='/admin/login' element={<AdminLogin />} />
                 <Route
-                  path="/admin/*"
+                  path='/admin/*'
                   element={
                     <ProtectedRoute>
                       <AdminLayout />
