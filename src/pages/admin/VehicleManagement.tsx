@@ -1,27 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
 import {
+  AlertCircle,
+  Calendar,
   Car,
+  CheckCircle,
+  Clock,
+  DollarSign,
   Edit,
-  Trash2,
+  Loader,
   Plus,
   Search,
-  Filter,
-  Eye,
-  Settings,
-  Upload,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Loader,
-  DollarSign,
-  Calendar,
+  Trash2,
   Wrench,
-  MapPin,
+  XCircle,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { useCallback, useEffect, useState } from 'react';
 import Button from '../../components/Button';
+import VehicleRegistration from '../../components/VehicleRegistration';
 import type { Vehicle } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 // Extended vehicle type with booking stats
 interface VehicleWithStats extends Vehicle {
@@ -460,7 +456,6 @@ const VehicleManagement = () => {
             icon={<Plus className='h-4 w-4' />}
             onClick={() => {
               setEditingVehicle(null);
-              resetForm();
               setShowVehicleModal(true);
             }}
           >
@@ -661,7 +656,10 @@ const VehicleManagement = () => {
                   <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                     <div className='flex items-center justify-end space-x-2'>
                       <button
-                        onClick={() => openEditModal(vehicle)}
+                        onClick={() => {
+                          setEditingVehicle(vehicle);
+                          setShowVehicleModal(true);
+                        }}
                         className='text-yellow-600 hover:text-yellow-900'
                         title='Modifier'
                       >
@@ -699,335 +697,27 @@ const VehicleManagement = () => {
 
       {/* Vehicle Modal */}
       {showVehicleModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto'>
-          <div className='bg-white rounded-lg max-w-2xl w-full my-4'>
-            <div className='px-6 py-4 border-b border-gray-200'>
-              <h2 className='text-xl font-semibold'>
-                {editingVehicle
-                  ? 'Modifier le véhicule'
-                  : 'Ajouter un véhicule'}
-              </h2>
-            </div>
+        <VehicleRegistration
+          onClose={() => {
+            setShowVehicleModal(false);
+            setEditingVehicle(null);
+          }}
+          onSuccess={(newVehicle) => {
+            // Refresh the vehicle list
+            fetchVehicles();
 
-            <div className='p-6 max-h-96 overflow-y-auto'>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                {/* Basic Information */}
-                <div className='space-y-4'>
-                  <h3 className='text-lg font-medium text-gray-900'>
-                    Informations de base
-                  </h3>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Nom du véhicule *
-                    </label>
-                    <input
-                      type='text'
-                      value={vehicleForm.name}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      required
-                    />
-                  </div>
-
-                  <div className='grid grid-cols-2 gap-2'>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Marque *
-                      </label>
-                      <input
-                        type='text'
-                        value={vehicleForm.make}
-                        onChange={(e) =>
-                          setVehicleForm((prev) => ({
-                            ...prev,
-                            make: e.target.value,
-                          }))
-                        }
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Modèle *
-                      </label>
-                      <input
-                        type='text'
-                        value={vehicleForm.model}
-                        onChange={(e) =>
-                          setVehicleForm((prev) => ({
-                            ...prev,
-                            model: e.target.value,
-                          }))
-                        }
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className='grid grid-cols-2 gap-2'>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Année
-                      </label>
-                      <input
-                        type='number'
-                        value={vehicleForm.year}
-                        onChange={(e) =>
-                          setVehicleForm((prev) => ({
-                            ...prev,
-                            year: parseInt(e.target.value),
-                          }))
-                        }
-                        min='1990'
-                        max={new Date().getFullYear() + 1}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Couleur
-                      </label>
-                      <input
-                        type='text'
-                        value={vehicleForm.color}
-                        onChange={(e) =>
-                          setVehicleForm((prev) => ({
-                            ...prev,
-                            color: e.target.value,
-                          }))
-                        }
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Catégorie
-                    </label>
-                    <select
-                      value={vehicleForm.category}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          category: e.target.value,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                    >
-                      {categories.map((cat) => (
-                        <option key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Operational Information */}
-                <div className='space-y-4'>
-                  <h3 className='text-lg font-medium text-gray-900'>
-                    Informations opérationnelles
-                  </h3>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Prix par jour (€) *
-                    </label>
-                    <input
-                      type='number'
-                      value={vehicleForm.daily_rate}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          daily_rate: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      min='0'
-                      step='0.01'
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Statut
-                    </label>
-                    <select
-                      value={vehicleForm.rental_status}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          rental_status: e.target
-                            .value as Vehicle['rental_status'],
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                    >
-                      {rentalStatuses.map((status) => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Plaque d'immatriculation
-                    </label>
-                    <input
-                      type='text'
-                      value={vehicleForm.license_plate}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          license_plate: e.target.value,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      placeholder='AB-123-CD'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Localisation
-                    </label>
-                    <input
-                      type='text'
-                      value={vehicleForm.location}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          location: e.target.value,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      placeholder='Garage A, Place 12'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      VIN
-                    </label>
-                    <input
-                      type='text'
-                      value={vehicleForm.vin}
-                      onChange={(e) =>
-                        setVehicleForm((prev) => ({
-                          ...prev,
-                          vin: e.target.value,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                      placeholder="Numéro d'identification"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className='mt-6'>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Description
-                </label>
-                <textarea
-                  value={vehicleForm.description}
-                  onChange={(e) =>
-                    setVehicleForm((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  rows={3}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                  placeholder='Description du véhicule, équipements spéciaux...'
-                />
-              </div>
-
-              {/* Features */}
-              <div className='mt-6'>
-                <div className='flex items-center justify-between mb-2'>
-                  <label className='block text-sm font-medium text-gray-700'>
-                    Caractéristiques
-                  </label>
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='sm'
-                    onClick={addFeature}
-                    icon={<Plus className='h-4 w-4' />}
-                  >
-                    Ajouter
-                  </Button>
-                </div>
-                <div className='space-y-2'>
-                  {vehicleForm.features.map((feature, index) => (
-                    <div key={index} className='flex space-x-2'>
-                      <input
-                        type='text'
-                        value={feature}
-                        onChange={(e) => updateFeature(index, e.target.value)}
-                        className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
-                        placeholder='Ex: Climatisation, GPS, Bluetooth...'
-                      />
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='sm'
-                        onClick={() => removeFeature(index)}
-                        className='text-red-600'
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
-                    </div>
-                  ))}
-                  {vehicleForm.features.length === 0 && (
-                    <p className='text-sm text-gray-500 italic'>
-                      Aucune caractéristique ajoutée. Cliquez sur "Ajouter" pour
-                      commencer.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className='px-6 py-4 border-t border-gray-200 flex space-x-3'>
-              <Button
-                variant='secondary'
-                onClick={() => {
-                  setShowVehicleModal(false);
-                  setEditingVehicle(null);
-                  resetForm();
-                }}
-                disabled={formLoading}
-                fullWidth
-              >
-                Annuler
-              </Button>
-              <Button
-                variant='primary'
-                onClick={handleSaveVehicle}
-                loading={formLoading}
-                disabled={formLoading}
-                fullWidth
-              >
-                {editingVehicle ? 'Mettre à jour' : 'Créer'}
-              </Button>
-            </div>
-          </div>
-        </div>
+            // Show success message
+            const toast = document.createElement('div');
+            toast.className =
+              'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.textContent = editingVehicle
+              ? 'Véhicule mis à jour avec succès!'
+              : 'Véhicule enregistré avec succès!';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+          }}
+          editingVehicle={editingVehicle}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
