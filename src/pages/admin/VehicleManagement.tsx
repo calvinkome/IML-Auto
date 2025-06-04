@@ -424,7 +424,7 @@ const VehicleManagement = () => {
   return (
     <div>
       {/* Header */}
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0 p-10'>
         <h1 className='text-3xl font-bold text-gray-900'>
           Gestion des véhicules
         </h1>
@@ -702,19 +702,10 @@ const VehicleManagement = () => {
             setShowVehicleModal(false);
             setEditingVehicle(null);
           }}
-          onSuccess={(newVehicle) => {
-            // Refresh the vehicle list
+          onSuccess={() => {
             fetchVehicles();
-
-            // Show success message
-            const toast = document.createElement('div');
-            toast.className =
-              'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            toast.textContent = editingVehicle
-              ? 'Véhicule mis à jour avec succès!'
-              : 'Véhicule enregistré avec succès!';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            setShowVehicleModal(false);
+            setEditingVehicle(null);
           }}
           editingVehicle={editingVehicle}
         />

@@ -136,7 +136,7 @@ export default function Navbar() {
   }, [window.location.pathname]);
 
   return (
-    <nav className='bg-black text-white py-4 px-6 fixed w-full z-50 shadow-lg'>
+    <nav className='bg-black text-white py-4 px-6 w-full z-50 shadow-lg'>
       <div className='max-w-7xl mx-auto flex justify-between items-center'>
         <Link to='/' className='flex items-center space-x-2'>
           <Car className='h-8 w-8 text-yellow-400' />
@@ -262,7 +262,7 @@ export default function Navbar() {
               </Link>
             </>
           )}
-          <Link to='/car-rental' className='inline-block'>
+          <Link to='/booking' className='inline-block'>
             <Button variant='primary' size='md'>
               Réserver
             </Button>
@@ -401,7 +401,7 @@ export default function Navbar() {
 
             <div className='pt-4 border-t border-gray-800 mt-4'>
               <Link
-                to='/car-rental'
+                to='/booking'
                 onClick={() => setMobileMenuOpen(false)}
                 className='block w-full'
               >
@@ -415,7 +415,7 @@ export default function Navbar() {
       )}
 
       {/* Status Bar */}
-      <div className='absolute bottom-0 left-0 right-0 bg-gray-900 py-1 px-6 text-sm'>
+      <div className='bg-gray-900 py-1 px-6 text-sm'>
         <div className='max-w-7xl mx-auto flex justify-between items-center text-gray-400'>
           <div className='flex items-center space-x-4'>
             <span>Support 24/7: +243 819 623 320</span>

@@ -1,7 +1,6 @@
-import React from 'react';
+import EnhancedCarList from '../components/EnhancedCarList';
 import Hero from '../components/Hero';
 import Services from '../components/Services';
-import CarList from '../components/CarList';
 import Testimonials from '../components/Testimonials';
 
 export default function Home() {
@@ -9,7 +8,7 @@ export default function Home() {
     <div>
       <Hero />
       <Services />
-      <CarList />
+      <EnhancedCarList showAll={true} />
       <Testimonials />
     </div>
   );

@@ -289,6 +289,8 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
   const handleImageUpload = async (files: FileList) => {
     if (!files.length) return;
 
+    console.log('🚀 Starting upload without bucket validation...');
+
     setUploadingImages(true);
     setError(null);
 
@@ -297,21 +299,48 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        console.log(`📷 Processing file ${i + 1}:`, file.name);
+
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+          throw new Error(`${file.name} n'est pas une image valide`);
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`${file.name} est trop volumineux (max 10MB)`);
+        }
+
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${i}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.${fileExt}`;
         const filePath = `vehicle-images/${fileName}`;
 
-        // Upload to Supabase Storage (this is a placeholder - you'd need to set up storage)
-        // const { data, error } = await supabase.storage
-        //   .from('vehicles')
-        //   .upload(filePath, file);
+        console.log(`📤 Attempting upload to: ${filePath}`);
 
-        // For now, create a blob URL for preview
-        const imageUrl = URL.createObjectURL(file);
+        // Try upload directly
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('vehicles')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('❌ Direct upload error:', uploadError);
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        console.log('✅ Upload successful:', uploadData);
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('vehicles')
+          .getPublicUrl(filePath);
 
         uploadedImages.push({
           id: Date.now().toString() + i,
-          url: imageUrl,
+          url: urlData.publicUrl,
           title: file.name,
           is_primary: formData.images.length === 0 && i === 0,
           order: formData.images.length + i,
@@ -322,8 +351,11 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
         ...prev,
         images: [...prev.images, ...uploadedImages],
       }));
-    } catch (err) {
-      setError('Erreur lors du téléchargement des images');
+
+      console.log('🎉 All uploads completed successfully');
+    } catch (err: any) {
+      console.error('💥 Upload failed:', err);
+      setError(err.message || 'Erreur lors du téléchargement des images');
     } finally {
       setUploadingImages(false);
     }
@@ -365,24 +397,45 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
       setLoading(true);
       setError(null);
 
-      // Prepare data for Supabase
+      // Validate that at least one image is uploaded
+      if (formData.images.length === 0) {
+        setError('Au moins une photo est requise');
+        return;
+      }
+
+      // Helper function to handle date fields
+      const formatDateField = (dateString: string) => {
+        if (!dateString || dateString.trim() === '') {
+          return null;
+        }
+        return dateString;
+      };
+
+      // Prepare data for Supabase - FIXED: Use 'price' instead of 'daily_rate'
       const vehicleData = {
         name: formData.name,
         make: formData.make,
         model: formData.model,
         year: formData.year,
         category: formData.category,
-        color: formData.color,
-        license_plate: formData.license_plate,
-        vin: formData.vin,
-        daily_rate: formData.daily_rate,
+        color: formData.color || null,
+        license_plate: formData.license_plate || null,
+        vin: formData.vin || null,
+
+        // FIXED: Map daily_rate to price column
+        price: formData.daily_rate, // This was the issue!
+
         rental_status: formData.rental_status,
-        description: formData.description,
+        description: formData.description || null,
         features: formData.features.filter((f) => f.trim()),
+
+        // Location data
+        current_location: formData.current_location || null,
+        home_location: formData.home_location || null,
 
         // Additional specifications as JSON
         specifications: {
-          engine_type: formData.engine_type,
+          engine_type: formData.engine_type || null,
           fuel_type: formData.fuel_type,
           transmission: formData.transmission,
           seats: formData.seats,
@@ -401,14 +454,25 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
           security_deposit: formData.security_deposit,
         },
 
-        // Location and service info
-        location: formData.current_location,
+        // Insurance & Documentation
+        insurance_policy: formData.insurance_policy || null,
+        registration_expiry: formatDateField(formData.registration_expiry),
+        last_service_date: formatDateField(formData.last_service_date),
+        next_service_due: formatDateField(formData.next_service_due),
+
+        // Images data
+        images: formData.images,
+        primary_image:
+          formData.images.find((img) => img.is_primary)?.url ||
+          formData.images[0]?.url,
+
         updated_at: new Date().toISOString(),
       };
 
+      console.log('🚀 Submitting vehicle data:', vehicleData);
+
       let result;
       if (editingVehicle) {
-        // Update existing vehicle
         result = await supabase
           .from('vehicles')
           .update(vehicleData)
@@ -416,7 +480,6 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
           .select()
           .single();
       } else {
-        // Create new vehicle
         result = await supabase
           .from('vehicles')
           .insert([vehicleData])
@@ -424,13 +487,17 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
           .single();
       }
 
-      if (result.error) throw result.error;
+      if (result.error) {
+        console.error('❌ Database error:', result.error);
+        throw result.error;
+      }
 
+      console.log('✅ Vehicle saved successfully:', result.data);
       onSuccess(result.data);
       onClose();
-    } catch (err) {
-      console.error('Error saving vehicle:', err);
-      setError('Erreur lors de la sauvegarde du véhicule');
+    } catch (err: any) {
+      console.error('💥 Error saving vehicle:', err);
+      setError(err.message || 'Erreur lors de la sauvegarde du véhicule');
     } finally {
       setLoading(false);
     }
@@ -460,6 +527,494 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
             </h3>
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              {/* Vehicle Name */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Nom du véhicule *
+                </label>
+                <input
+                  type='text'
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Ex: BMW Série 3 Élégante'
+                  required
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Catégorie *
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      category: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  required
+                >
+                  {categories.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Make */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Marque *
+                </label>
+                <input
+                  type='text'
+                  value={formData.make}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      make: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Ex: BMW, Mercedes, Renault...'
+                  required
+                />
+              </div>
+
+              {/* Model */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Modèle *
+                </label>
+                <input
+                  type='text'
+                  value={formData.model}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      model: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Ex: Série 3, Classe C, Megane...'
+                  required
+                />
+              </div>
+
+              {/* Year */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Année
+                </label>
+                <input
+                  type='number'
+                  value={formData.year}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      year:
+                        parseInt(e.target.value) || new Date().getFullYear(),
+                    }))
+                  }
+                  min='1990'
+                  max={new Date().getFullYear() + 1}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                />
+              </div>
+
+              {/* Color */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Couleur
+                </label>
+                <input
+                  type='text'
+                  value={formData.color}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      color: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Ex: Noir, Blanc, Rouge...'
+                />
+              </div>
+
+              {/* License Plate */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Plaque d'immatriculation
+                </label>
+                <input
+                  type='text'
+                  value={formData.license_plate}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      license_plate: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Ex: AB-123-CD'
+                />
+              </div>
+
+              {/* VIN */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Numéro VIN
+                </label>
+                <input
+                  type='text'
+                  value={formData.vin}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      vin: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder={`Numéro d'identification du véhicule`}
+                  maxLength={17}
+                />
+              </div>
+
+              {/* Daily Rate */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Tarif journalier (€) *
+                </label>
+                <input
+                  type='number'
+                  value={formData.daily_rate}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      daily_rate: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  min='0'
+                  step='0.01'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='0.00'
+                  required
+                />
+              </div>
+
+              {/* Rental Status */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Statut actuel
+                </label>
+                <select
+                  value={formData.rental_status}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      rental_status: e.target.value as
+                        | 'available'
+                        | 'rented'
+                        | 'maintenance'
+                        | 'retired',
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                >
+                  <option value='available'>Disponible</option>
+                  <option value='rented'>Loué</option>
+                  <option value='maintenance'>En maintenance</option>
+                  <option value='retired'>Retiré</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                rows={4}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                placeholder='Description détaillée du véhicule, ses caractéristiques particulières...'
+              />
+            </div>
+          </div>
+        );
+
+      case 1: // Specifications
+        return (
+          <div className='space-y-6'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+              Spécifications techniques
+            </h3>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              {/* Fuel Type */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Type de carburant *
+                </label>
+                <select
+                  value={formData.fuel_type}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      fuel_type: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  required
+                >
+                  {fuelTypes.map((fuel) => (
+                    <option key={fuel} value={fuel}>
+                      {fuel}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Transmission */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Transmission *
+                </label>
+                <select
+                  value={formData.transmission}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      transmission: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  required
+                >
+                  {transmissionTypes.map((transmission) => (
+                    <option key={transmission} value={transmission}>
+                      {transmission}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Engine Type */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Type de moteur
+                </label>
+                <select
+                  value={formData.engine_type}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      engine_type: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                >
+                  <option value=''>Sélectionner...</option>
+                  {engineTypes.map((engine) => (
+                    <option key={engine} value={engine}>
+                      {engine}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mileage */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Kilométrage
+                </label>
+                <input
+                  type='number'
+                  value={formData.mileage}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      mileage: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                  min='0'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='0'
+                />
+              </div>
+
+              {/* Seats */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Nombre de places *
+                </label>
+                <input
+                  type='number'
+                  value={formData.seats}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      seats: parseInt(e.target.value) || 5,
+                    }))
+                  }
+                  min='1'
+                  max='50'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  required
+                />
+              </div>
+
+              {/* Doors */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Nombre de portes
+                </label>
+                <input
+                  type='number'
+                  value={formData.doors}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      doors: parseInt(e.target.value) || 4,
+                    }))
+                  }
+                  min='2'
+                  max='10'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                />
+              </div>
+
+              {/* Current Location */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Localisation actuelle
+                </label>
+                <input
+                  type='text'
+                  value={formData.current_location}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      current_location: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Ex: Garage Central, Agence Nord...'
+                />
+              </div>
+
+              {/* Home Location */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Localisation de base
+                </label>
+                <input
+                  type='text'
+                  value={formData.home_location}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      home_location: e.target.value,
+                    }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='Localisation habituelle du véhicule'
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2: // Pricing
+        return (
+          <div className='space-y-6'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+              Tarification et conditions
+            </h3>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              {/* Daily Rate */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Tarif journalier (€) *
+                </label>
+                <input
+                  type='number'
+                  value={formData.daily_rate}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      daily_rate: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  min='0'
+                  step='0.01'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='0.00'
+                  required
+                />
+              </div>
+
+              {/* Security Deposit */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Caution (€)
+                </label>
+                <input
+                  type='number'
+                  value={formData.security_deposit}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      security_deposit: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  min='0'
+                  step='0.01'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                  placeholder='500.00'
+                />
+              </div>
+
+              {/* Weekly Discount */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Remise hebdomadaire (%)
+                </label>
+                <input
+                  type='number'
+                  value={formData.weekly_discount}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      weekly_discount: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  min='0'
+                  max='50'
+                  step='0.1'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500'
+                />
+              </div>
+
+              {/* Monthly Discount */}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
                   Remise mensuelle (%)

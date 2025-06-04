@@ -28,6 +28,7 @@ import ReportsAnalytics from './pages/admin/ReportsAnalytics';
 import UserManagement from './pages/admin/UserManagement';
 import VehicleManagement from './pages/admin/VehicleManagement';
 import Blog from './pages/blog/Blog';
+import CustomerBooking from './pages/CustomerBooking';
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -91,6 +92,8 @@ function App() {
                 <Route path='/premium-service' element={<PremiumService />} />
                 <Route path='/support' element={<Support />} />
                 <Route path='/contact' element={<Contact />} />
+                <Route path='/booking' element={<CustomerBooking />} />
+                <Route path='/reserve' element={<CustomerBooking />} />
 
                 {/* Protected Routes */}
                 <Route
