@@ -284,7 +284,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className='lg:hidden absolute top-full left-0 right-0 bg-black border-t border-gray-800'>
+        <div className='lg:hidden absolute left-0 right-0 top-28 bg-black border-t border-gray-800'>
           <div className='px-4 py-2'>
             <Link
               to='/'
