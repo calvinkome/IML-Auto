@@ -174,7 +174,7 @@ const CustomerBookingSystem: React.FC = () => {
       }
 
       const { data: vehiclesData, error: vehiclesError } = await query;
-
+      console.log('vehiclesData:', vehiclesData);
       if (vehiclesError) throw vehiclesError;
 
       // Check availability for date range
@@ -592,7 +592,7 @@ const CustomerBookingSystem: React.FC = () => {
               >
                 <div className='relative'>
                   <img
-                    src={vehicle.image}
+                    src={vehicle.primary_image}
                     alt={vehicle.name}
                     className='w-full h-48 object-cover'
                   />
