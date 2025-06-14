@@ -53,6 +53,7 @@ interface VehicleWithAvailability {
   total_price: number;
   discounted_price: number;
   discount_percentage: number;
+  primary_image: string;
 }
 
 interface BookingDetails {

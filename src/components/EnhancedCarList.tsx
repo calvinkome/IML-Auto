@@ -25,6 +25,7 @@ interface Vehicle {
   specifications: any;
   rental_status: string;
   image: string;
+  primary_image: string;
 }
 
 interface EnhancedCarListProps {
@@ -181,7 +182,7 @@ const EnhancedCarList: React.FC<EnhancedCarListProps> = ({
         >
           <div className='relative'>
             <img
-              src={vehicle.image}
+              src={vehicle.primary_image}
               alt={vehicle.name}
               className='w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300'
             />
