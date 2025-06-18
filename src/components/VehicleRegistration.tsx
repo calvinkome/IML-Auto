@@ -693,7 +693,7 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
               {/* Daily Rate */}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Tarif journalier (€) *
+                  Tarif journalier ($) *
                 </label>
                 <input
                   type='number'
@@ -953,7 +953,7 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
               {/* Daily Rate */}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Tarif journalier (€) *
+                  Tarif journalier ($) *
                 </label>
                 <input
                   type='number'
@@ -975,7 +975,7 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
               {/* Security Deposit */}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Caution (€)
+                  Caution ($)
                 </label>
                 <input
                   type='number'
@@ -1045,13 +1045,13 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
                 <div>
                   <span className='text-gray-600'>1 jour:</span>
                   <span className='font-medium ml-2'>
-                    {formData.daily_rate.toFixed(2)} €
+                    {formData.daily_rate.toFixed(2)} $
                   </span>
                 </div>
                 <div>
                   <span className='text-gray-600'>7 jours:</span>
                   <span className='font-medium ml-2'>
-                    {calculateEstimatedRate(7).toFixed(2)} €
+                    {calculateEstimatedRate(7).toFixed(2)} $
                   </span>
                   <span className='text-green-600 text-xs ml-1'>
                     (-{formData.weekly_discount}%)
@@ -1060,7 +1060,7 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
                 <div>
                   <span className='text-gray-600'>30 jours:</span>
                   <span className='font-medium ml-2'>
-                    {calculateEstimatedRate(30).toFixed(2)} €
+                    {calculateEstimatedRate(30).toFixed(2)} $
                   </span>
                   <span className='text-green-600 text-xs ml-1'>
                     (-{formData.monthly_discount}%)
@@ -1589,7 +1589,7 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
                   <div className='space-y-1 text-sm'>
                     <p>
                       <span className='text-gray-600'>Tarif journalier:</span>{' '}
-                      {formData.daily_rate.toFixed(2)} €
+                      {formData.daily_rate.toFixed(2)} $
                     </p>
                     <p>
                       <span className='text-gray-600'>Remise 7 jours:</span>{' '}
@@ -1601,7 +1601,7 @@ const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
                     </p>
                     <p>
                       <span className='text-gray-600'>Caution:</span>{' '}
-                      {formData.security_deposit.toFixed(2)} €
+                      {formData.security_deposit.toFixed(2)} $
                     </p>
                   </div>
                 </div>

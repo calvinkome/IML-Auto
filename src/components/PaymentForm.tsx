@@ -295,7 +295,7 @@ export default function PaymentForm({ amount, duration = 1, onSubmit, onCancel }
 
   return (
     <div className="bg-white rounded-lg p-4 md:p-6 w-full">
-      <h2 className="text-2xl font-bold mb-6">Paiement - {amount * duration}€</h2>
+      <h2 className="text-2xl font-bold mb-6">Paiement - {amount * duration}$</h2>
 
       <div className="mb-6">
         {/* Payment Method Selection */}

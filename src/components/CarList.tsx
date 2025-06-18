@@ -133,7 +133,7 @@ export default function CarList() {
                   onChange={(e) => setFilters((prev) => ({ ...prev, price: parseInt(e.target.value) }))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-yellow-400"
                 />
-                <span className="text-yellow-400 font-semibold">{filters.price}€</span>
+                <span className="text-yellow-400 font-semibold">{filters.price}$</span>
               </div>
             </div>
 
@@ -255,7 +255,7 @@ export default function CarList() {
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-xl font-semibold">{car.name}</h3>
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-yellow-400">{car.price}€</span>
+                    <span className="text-2xl font-bold text-yellow-400">{car.price}$</span>
                     <span className="text-sm text-gray-500 block">/jour</span>
                   </div>
                 </div>

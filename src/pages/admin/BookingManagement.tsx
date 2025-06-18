@@ -921,7 +921,7 @@ const BookingManagement = () => {
                 {/* Amount and Status */}
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Montant total (€)
+                    Montant total ($)
                   </label>
                   <input
                     type='number'

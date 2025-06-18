@@ -81,7 +81,7 @@ export default function PaymentModal({ amount, onClose, onConfirm, title = 'Paie
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-6">{title} - {amount}€</h2>
+        <h2 className="text-2xl font-bold mb-6">{title} - {amount}$</h2>
 
         <div className="mb-6">
           <div className="flex space-x-4 mb-6">

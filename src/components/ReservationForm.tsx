@@ -293,7 +293,7 @@ export default function ReservationForm({ vehicle, onClose, onConfirm }: Reserva
                 <p><span className="font-medium">Heure:</span> {formData.booking.time}</p>
                 <p><span className="font-medium">Durée:</span> {formData.booking.duration} jour{formData.booking.duration > 1 ? 's' : ''}</p>
                 <p><span className="font-medium">Personnes:</span> {formData.booking.guests}</p>
-                <p><span className="font-medium">Montant:</span> {vehicle.price * formData.booking.duration}€</p>
+                <p><span className="font-medium">Montant:</span> {vehicle.price * formData.booking.duration}$</p>
               </div>
             </div>
 
