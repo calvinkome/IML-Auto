@@ -40,6 +40,7 @@ const EnhancedCarList: React.FC<EnhancedCarListProps> = ({
   limit = 6,
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  console.log("🚀 ~ vehicles:", vehicles)
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
@@ -109,9 +110,9 @@ const EnhancedCarList: React.FC<EnhancedCarListProps> = ({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'USD',
     }).format(amount);
   };
 
