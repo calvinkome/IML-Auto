@@ -40,7 +40,7 @@ const EnhancedCarList: React.FC<EnhancedCarListProps> = ({
   limit = 6,
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  console.log("🚀 ~ vehicles:", vehicles)
+  console.log('🚀 ~ vehicles:', vehicles);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
@@ -260,14 +260,16 @@ const EnhancedCarList: React.FC<EnhancedCarListProps> = ({
             {vehicle.features && vehicle.features.length > 0 && (
               <div className='mb-4'>
                 <div className='flex flex-wrap gap-1'>
-                  {vehicle.features.slice(0, 3).map((feature, index) => (
-                    <span
-                      key={index}
-                      className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'
-                    >
-                      {feature}
-                    </span>
-                  ))}
+                  {vehicle.features
+                    .slice(0, 3)
+                    .map((feature: any, index: number) => (
+                      <span
+                        key={index}
+                        className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'
+                      >
+                        {feature}
+                      </span>
+                    ))}
                   {vehicle.features.length > 3 && (
                     <span className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'>
                       +{vehicle.features.length - 3}
@@ -282,7 +284,7 @@ const EnhancedCarList: React.FC<EnhancedCarListProps> = ({
               <div>
                 <div className='flex items-baseline space-x-1'>
                   <span className='text-xl font-bold text-gray-900'>
-                    {formatCurrency(vehicle.daily_rate)}
+                    {formatCurrency(vehicle.price || vehicle.daily_rate || 0)}
                   </span>
                   <span className='text-sm text-gray-500'>/jour</span>
                 </div>

@@ -226,7 +226,7 @@ const VehicleManagement = () => {
         model: vehicleForm.model,
         year: vehicleForm.year,
         category: vehicleForm.category,
-        daily_rate: vehicleForm.daily_rate,
+        price: vehicleForm.daily_rate, // Fixed: save as 'price'
         rental_status: vehicleForm.rental_status,
         color: vehicleForm.color || null,
         license_plate: vehicleForm.license_plate || null,
@@ -337,22 +337,22 @@ const VehicleManagement = () => {
       model: vehicle.model || '',
       year: vehicle.year || new Date().getFullYear(),
       category: vehicle.category || 'economic',
-      daily_rate: vehicle.daily_rate || 0,
+      daily_rate: vehicle.price || vehicle.daily_rate || 0, // Fixed: read from 'price'
       rental_status: vehicle.rental_status || 'available',
       color: vehicle.color || '',
       license_plate: vehicle.license_plate || '',
       location: vehicle.location || '',
       description: vehicle.description || '',
-      features: Array.isArray(vehicle.features) ? vehicle.features : [],
+      features: Array.isArray(vehicle.features) ? vehicle.features : [] as any,
       vin: vehicle.vin || '',
     });
     setShowVehicleModal(true);
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'USD',
     }).format(amount);
   };
 
@@ -618,7 +618,7 @@ const VehicleManagement = () => {
                     </span>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
-                    {formatCurrency(vehicle.daily_rate || 0)}
+                    {formatCurrency(vehicle.price || vehicle.daily_rate || 0)}
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap'>
                     <span
